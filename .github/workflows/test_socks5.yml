@@ -26,7 +26,7 @@ jobs:
         python socks5_tester.py
 
     - name: Upload Results
-      uses: actions/upload-artifact@v3.2.0
+      uses: actions/upload-artifact@v3.3.0 # 更新为最新支持的版本
       with:
         name: telecom_results
         path: telecom.txt
