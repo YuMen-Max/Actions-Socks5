@@ -13,7 +13,7 @@ TEST_URLS = [
     "http://captive.apple.com",
     "http://www.msftconnecttest.com/connecttest.txt"
 ]
-TIMEOUT = 5
+TIMEOUT = 8  # 增加超时时间以适应 GitHub Actions 环境
 MAX_TEST_COUNT = 2000
 
 def debug_print(message):
@@ -25,7 +25,7 @@ def setup_environment():
     """检查并安装必要依赖"""
     try:
         import requests
-        debug_print("requests 库已安装")
+        debug_print(f"requests 版本: {requests.__version__}")
     except ImportError:
         debug_print("正在安装 requests 库...")
         try:
@@ -43,7 +43,12 @@ def test_proxy(proxy):
             "http": f"socks5://{proxy}",
             "https": f"socks5://{proxy}",
         }
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "Accept": "*/*"
+        }
+        
+        debug_print(f"测试代理: {proxy}")
         
         for url in TEST_URLS:
             try:
@@ -52,12 +57,14 @@ def test_proxy(proxy):
                     url, 
                     proxies=proxies, 
                     timeout=TIMEOUT,
-                    headers=headers
+                    headers=headers,
+                    verify=False  # 避免证书验证问题
                 )
                 
                 latency = (time.time() - start_time) * 1000
+                debug_print(f"  √ {url} 响应时间: {latency:.2f}ms, 状态码: {response.status_code}")
                 
-                # 验证响应
+                # 检查不同服务的成功响应
                 if "gstatic.com" in url and response.status_code == 204:
                     return True
                 if "apple.com" in url and "Success" in response.text:
@@ -66,18 +73,19 @@ def test_proxy(proxy):
                     return True
                     
             except Exception as e:
+                debug_print(f"  × {url} 失败: {type(e).__name__}")
                 continue
                 
         return False
         
     except Exception as e:
-        debug_print(f"测试异常: {str(e)}")
+        debug_print(f"代理测试异常: {str(e)}")
         return False
 
 def main():
     """主函数"""
     print("=" * 60)
-    print("GitHub 代理测试脚本")
+    print("GitHub Actions 代理测试脚本")
     print("=" * 60)
     print(f"操作系统: {platform.system()} {platform.release()}")
     print(f"Python 版本: {sys.version}")
