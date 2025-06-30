@@ -1,9 +1,17 @@
 name: Proxy Tester
 
 on:
+  # 手动触发
   workflow_dispatch:
+  
+  # 自动触发 - 每天UTC时间0点运行(北京时间8点)
   schedule:
     - cron: '0 0 * * *'
+  
+  # 当socks.txt文件变更时触发
+  push:
+    paths:
+      - 'socks.txt'
 
 jobs:
   test-proxies:
@@ -17,6 +25,7 @@ jobs:
       run: |
         echo "当前目录内容:"
         ls -la
+        echo "检查必要文件:"
         [ -f socks5_tester.py ] && echo "✅ socks5_tester.py 存在" || echo "❌ socks5_tester.py 不存在"
         [ -f socks.txt ] && echo "✅ socks.txt 存在" || echo "❌ socks.txt 不存在"
       
@@ -26,12 +35,12 @@ jobs:
         python-version: '3.10'
         
     - name: Install dependencies
-      run: pip install requests
+      run: pip install -r requirements.txt
       
     - name: Run proxy tester
-      run: python socks5_tester.py  # 使用正确的文件名
+      run: python socks5_tester.py
       
-    - name: Upload results
+    - name: Upload results as artifact
       uses: actions/upload-artifact@v4
       with:
         name: proxy-results
