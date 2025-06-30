@@ -16,10 +16,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        ref: 'main'  # 明确指定分支
+        ref: 'main'
         
-    - name: Clean workspace
-      run: git clean -fdx  # 清除可能存在的缓存
+    - name: Fix file permissions
+      run: sudo chown -R $(whoami) $GITHUB_WORKSPACE
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -32,20 +32,27 @@ jobs:
     - name: Run proxy tests
       id: run-tests
       run: |
+        echo "=== 当前目录内容 ==="
+        ls -la
+        
+        echo "=== china.txt 内容 ==="
+        cat china.txt
+        
         python proxy_tester.py
+        
+        echo "=== telecom.txt 内容 ==="
+        cat telecom.txt
+        
         valid_count=$(grep -c . telecom.txt 2>/dev/null || echo 0)
         echo "valid_count=$valid_count" >> $GITHUB_OUTPUT
-        
-    - name: Verify file location
-      run: |
-        echo "当前工作目录: $(pwd)"
-        ls -la
-        echo "telecom.txt 内容:"
-        cat telecom.txt
         
     - name: Check for changes
       id: check-changes
       run: |
+        echo "=== 文件变更检查 ==="
+        git status
+        git diff
+        
         if git diff --quiet telecom.txt; then
           echo "has_changes=false" >> $GITHUB_OUTPUT
           echo "🟢 没有变化，跳过提交"
