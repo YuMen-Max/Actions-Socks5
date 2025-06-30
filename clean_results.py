@@ -1,6 +1,8 @@
 def clean_results(file_path):
     """
-    清理 results.txt 文件，移除 FAILED 条目并去掉 SUCCESS 前缀
+    清理 results.txt 文件：
+    1. 移除所有以 "FAILED:" 开头的行。
+    2. 去掉所有以 "SUCCESS:" 开头的行的前缀，只保留代理地址。
     """
     cleaned_proxies = []
 
@@ -10,17 +12,17 @@ def clean_results(file_path):
         for line in lines:
             line = line.strip()
             if line.startswith("SUCCESS:"):
-                # 去掉 SUCCESS: 前缀，保留原始代理格式
+                # 去掉 SUCCESS: 前缀，仅保留代理地址
                 cleaned_proxies.append(line.replace("SUCCESS: ", ""))
             elif line.startswith("FAILED:"):
                 # 跳过 FAILED 条目
                 continue
 
-    # 清理后的内容写回文件
+    # 将清理后的内容写回文件
     with open(file_path, "w") as file:
-        file.write("\n".join(cleaned_proxies))
+        file.write("\n".join(cleaned_proxies) + "\n")
 
-    print(f"清理完成！已保存到 {file_path}")
+    print(f"清理完成！已更新文件: {file_path}")
 
 
 if __name__ == "__main__":
