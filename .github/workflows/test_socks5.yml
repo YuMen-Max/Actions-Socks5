@@ -3,7 +3,7 @@ name: Proxy Tester
 on:
   workflow_dispatch:  # 允许手动运行
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间0点运行
+    - cron: '0 0 * * *'  # 每天 UTC 时间 0 点运行
 
 jobs:
   test-proxies:
@@ -11,10 +11,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # 更新到最新版本
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5  # 更新到最新版本
       with:
         python-version: '3.10'
         
@@ -25,15 +25,17 @@ jobs:
       run: python proxy_tester.py
       
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # 使用 v4 替代弃用的 v3
       with:
         name: proxy-results
         path: telecom.txt
         
     - name: Commit results
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config --global user.name 'GitHub Actions'
         git config --global user.email 'actions@github.com'
         git add telecom.txt
-        git commit -m "Automated proxy update" || echo "No changes to commit"
+        git commit -m "Automated proxy update [skip ci]" || echo "No changes to commit"
         git push
