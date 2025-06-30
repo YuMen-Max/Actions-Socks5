@@ -1,28 +1,32 @@
-name: Proxy Connectivity Test
+name: SOCKS5 Proxy Tester
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # 手动触发工作流
+  schedule:          # 定时触发
+    - cron: '0 0 * * *' # 每天运行一次
 
 jobs:
   test-proxies:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.9
+        python-version: '3.9'
 
     - name: Install dependencies
       run: pip install requests[socks]
 
-    - name: Run proxy tests
-      run: python test_proxies.py
+    - name: Run SOCKS5 Tester
+      run: |
+        python socks5_tester.py
 
-    - name: Clean results
-      run: python clean_results.py
+    - name: Upload Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: valid_ips
+        path: valid_ips.txt
