@@ -29,7 +29,9 @@ jobs:
       id: run-tests
       run: |
         python proxy_tester.py
-        echo "valid_count=$(grep -c . telecom.txt || echo 0)" >> $GITHUB_OUTPUT
+        # 统计有效代理数量
+        valid_count=$(grep -c . telecom.txt 2>/dev/null || echo 0)
+        echo "valid_count=$valid_count" >> $GITHUB_OUTPUT
         
     - name: Commit and push changes
       run: |
