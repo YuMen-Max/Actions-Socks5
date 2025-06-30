@@ -2,93 +2,59 @@ import requests
 import os
 import time
 import sys
-import platform
-import subprocess
+import concurrent.futures
+import logging
 
 # 配置参数
 INPUT_FILE = "socks.txt"
 OUTPUT_FILE = "telecom.txt"
-TEST_URL = "http://www.gstatic.com/generate_204"  # 仅使用这个测试链接
-TIMEOUT = 8  # 超时时间
+TEST_URL = "http://www.gstatic.com/generate_204"
+TIMEOUT = 2  # 2秒超时
 MAX_TEST_COUNT = 2000  # 最大测试数量
+MAX_WORKERS = 50  # 并发测试线程数
 
-def debug_print(message):
-    """带时间戳的调试输出"""
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] {message}")
-
-def setup_environment():
-    """检查并安装必要依赖"""
-    try:
-        import requests
-        debug_print(f"requests 版本: {requests.__version__}")
-    except ImportError:
-        debug_print("正在安装 requests 库...")
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
-            import requests
-            debug_print("requests 安装成功")
-        except Exception as e:
-            debug_print(f"安装失败: {str(e)}")
-            sys.exit(1)
+# 设置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 def test_proxy(proxy):
-    """测试代理连通性 - 仅使用 gstatic.com/generate_204"""
+    """测试单个代理的连通性"""
     try:
         proxies = {
             "http": f"socks5://{proxy}",
             "https": f"socks5://{proxy}",
         }
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-            "Accept": "*/*"
-        }
         
-        debug_print(f"测试代理: {proxy}")
+        response = requests.get(
+            TEST_URL, 
+            proxies=proxies, 
+            timeout=TIMEOUT,
+            verify=False  # 避免证书验证问题
+        )
         
-        try:
-            start_time = time.time()
-            response = requests.get(
-                TEST_URL, 
-                proxies=proxies, 
-                timeout=TIMEOUT,
-                headers=headers,
-                verify=False  # 避免证书验证问题
-            )
-            
-            latency = (time.time() - start_time) * 1000
-            debug_print(f"响应时间: {latency:.2f}ms, 状态码: {response.status_code}")
-            
-            # 检查状态码是否为 204
-            if response.status_code == 204:
-                return True
-                
-        except Exception as e:
-            debug_print(f"请求失败: {type(e).__name__}")
-        
-        return False
-        
+        if response.status_code == 204:
+            return True, proxy
     except Exception as e:
-        debug_print(f"代理测试异常: {str(e)}")
-        return False
+        pass  # 所有错误都视为失败
+    
+    return False, proxy
 
 def main():
     """主函数"""
     print("=" * 60)
-    print("GitHub Actions 代理测试脚本")
+    print("SOCKS5 代理测试脚本")
     print(f"测试链接: {TEST_URL}")
-    print("=" * 60)
-    print(f"操作系统: {platform.system()} {platform.release()}")
-    print(f"Python 版本: {sys.version}")
+    print(f"超时时间: {TIMEOUT}秒 | 最大测试数: {MAX_TEST_COUNT}")
     print(f"工作目录: {os.getcwd()}")
     print("=" * 60)
     
-    # 安装依赖
-    setup_environment()
-    
     # 检查输入文件
     if not os.path.exists(INPUT_FILE):
-        debug_print(f"错误: {INPUT_FILE} 文件不存在")
+        logger.error(f"错误: {INPUT_FILE} 文件不存在")
         sys.exit(1)
     
     # 读取代理列表
@@ -97,42 +63,50 @@ def main():
             proxies = [line.strip() for line in f if line.strip() and not line.startswith("#")]
         
         if not proxies:
-            debug_print(f"错误: {INPUT_FILE} 为空")
+            logger.error(f"错误: {INPUT_FILE} 为空")
             sys.exit(1)
             
-        debug_print(f"找到 {len(proxies)} 个代理")
+        logger.info(f"找到 {len(proxies)} 个代理")
+        
+        # 限制最大测试数量
+        if len(proxies) > MAX_TEST_COUNT:
+            proxies = proxies[:MAX_TEST_COUNT]
+            logger.info(f"限制测试数量为: {MAX_TEST_COUNT}")
     except Exception as e:
-        debug_print(f"文件读取错误: {str(e)}")
+        logger.error(f"文件读取错误: {str(e)}")
         sys.exit(1)
     
-    # 初始化输出文件
+    # 清空输出文件
     open(OUTPUT_FILE, "w").close()
     
     valid_proxies = []
     start_time = time.time()
+    tested_count = 0
     
-    # 测试代理
-    for i, proxy in enumerate(proxies):
-        if len(valid_proxies) >= MAX_TEST_COUNT:
-            debug_print(f"达到最大测试数 {MAX_TEST_COUNT}")
-            break
-            
-        debug_print(f"测试代理 {i+1}/{len(proxies)}: {proxy}")
+    # 使用线程池并发测试
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        future_to_proxy = {executor.submit(test_proxy, proxy): proxy for proxy in proxies}
         
-        if test_proxy(proxy):
-            debug_print("  成功: 代理有效")
-            valid_proxies.append(proxy)
+        for future in concurrent.futures.as_completed(future_to_proxy):
+            tested_count += 1
+            proxy = future_to_proxy[future]
             
-            # 实时写入结果
-            with open(OUTPUT_FILE, "a") as out:
-                out.write(f"{proxy}\n")
-        else:
-            debug_print("  失败: 代理无效")
+            try:
+                success, proxy = future.result()
+                if success:
+                    valid_proxies.append(proxy)
+                    logger.info(f"代理有效: {proxy}")
+                    
+                    # 实时写入结果
+                    with open(OUTPUT_FILE, "a") as out:
+                        out.write(f"{proxy}\n")
+            except Exception as e:
+                logger.error(f"测试异常: {str(e)}")
     
     # 生成报告
     elapsed = time.time() - start_time
     print("\n" + "=" * 60)
-    print(f"测试完成! 总代理: {len(proxies)}")
+    print(f"测试完成! 总代理: {tested_count}")
     print(f"有效代理: {len(valid_proxies)}")
     print(f"耗时: {elapsed:.2f} 秒")
     
