@@ -1,57 +1,33 @@
-name: Proxy Tester
+name: Proxy Connectivity Test
 
 on:
-  # 手动触发
-  workflow_dispatch:
-  
-  # 自动触发 - 每天UTC时间0点运行(北京时间8点)
+  workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 0 * * *'
-  
-  # 当socks.txt文件变更时触发
-  push:
-    paths:
-      - 'socks.txt'
+    - cron: '0 0 * * *'  # 每天UTC时间00:00运行
 
 jobs:
   test-proxies:
     runs-on: ubuntu-latest
-    
+    env:
+      PROXY_LIST: ${{ secrets.PROXY_LIST }}
+      
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Verify files exist
-      run: |
-        echo "当前目录内容:"
-        ls -la
-        echo "检查必要文件:"
-        [ -f socks5_tester.py ] && echo "✅ socks5_tester.py 存在" || echo "❌ socks5_tester.py 不存在"
-        [ -f socks.txt ] && echo "✅ socks.txt 存在" || echo "❌ socks.txt 不存在"
-      
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.x'
         
     - name: Install dependencies
       run: pip install -r requirements.txt
       
-    - name: Run proxy tester
-      run: python socks5_tester.py
+    - name: Run proxy tests
+      run: python proxy_tester.py
       
-    - name: Upload results as artifact
-      uses: actions/upload-artifact@v4
+    - name: Upload valid proxies
+      uses: actions/upload-artifact@v3
       with:
-        name: proxy-results
-        path: telecom.txt
-        
-    - name: Commit results
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git config --global user.name 'GitHub Actions'
-        git config --global user.email 'actions@github.com'
-        git add telecom.txt
-        git commit -m "Automated proxy update [skip ci]" || echo "No changes to commit"
-        git push
+        name: valid-proxies
+        path: valid_proxies.txt
