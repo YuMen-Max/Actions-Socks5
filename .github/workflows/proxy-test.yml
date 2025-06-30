@@ -17,7 +17,6 @@ jobs:
       run: |
         echo "当前目录内容:"
         ls -la
-        echo "检查必要文件:"
         [ -f socks5_tester.py ] && echo "✅ socks5_tester.py 存在" || echo "❌ socks5_tester.py 不存在"
         [ -f socks.txt ] && echo "✅ socks.txt 存在" || echo "❌ socks.txt 不存在"
       
