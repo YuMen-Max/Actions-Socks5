@@ -42,7 +42,7 @@ def test_proxy(proxy):
         
         # 如果返回 204 状态码，表示代理正常
         if response.status_code == 204:
-            return proxy  # 返回原始代理字符串
+            return proxy  # 直接返回原始代理字符串
         else:
             return None  # 返回 None 表示失败
     except Exception:
