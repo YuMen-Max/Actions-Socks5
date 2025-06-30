@@ -79,7 +79,9 @@ def read_input_proxies(input_file):
 def save_valid_proxies(valid_proxies, output_file):
     """保存有效代理到输出文件"""
     try:
+        # 确保输出目录存在
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        
         with open(output_file, 'w') as f:
             f.write('\n'.join(valid_proxies))
         print(f"📁 保存 {len(valid_proxies)} 个有效代理到 {output_file}")
@@ -89,39 +91,65 @@ def save_valid_proxies(valid_proxies, output_file):
         return False
 
 def main():
-    # 配置输入输出文件
-    input_file = "china.txt"
-    output_file = "telecom.txt"
+    try:
+        # 获取当前脚本所在目录
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        print(f"📂 脚本目录: {script_dir}")
+        
+        # 配置输入输出文件（使用绝对路径）
+        input_file = os.path.join(script_dir, "china.txt")
+        output_file = os.path.join(script_dir, "telecom.txt")
+        
+        print(f"📝 输入文件路径: {input_file}")
+        print(f"💾 输出文件路径: {output_file}")
+        
+        # 确保输入文件存在
+        if not os.path.exists(input_file):
+            print(f"❌ 错误: 输入文件 {input_file} 不存在")
+            return 0
+        
+        # 读取并提取输入代理
+        all_proxies = read_input_proxies(input_file)
+        print(f"🔍 总代理数: {len(all_proxies)}")
+        
+        if not all_proxies:
+            print("⚠️ 未找到任何代理，跳过测试")
+            return 0
+        
+        # 测试所有代理
+        valid_proxies = []
+        for i, proxy in enumerate(all_proxies):
+            if test_proxy(proxy):
+                valid_proxies.append(proxy)
+            
+            # 每测试100个代理打印一次进度
+            if (i + 1) % 100 == 0:
+                print(f"⏳ 测试进度: {i+1}/{len(all_proxies)} | 有效代理: {len(valid_proxies)}")
+        
+        # 保存有效代理
+        if valid_proxies:
+            save_valid_proxies(valid_proxies, output_file)
+        else:
+            # 如果没有有效代理，清空输出文件
+            with open(output_file, 'w') as f:
+                f.write('')
+            print("📁 清空输出文件（无有效代理）")
+        
+        # 验证文件是否保存成功
+        if os.path.exists(output_file):
+            with open(output_file, 'r') as f:
+                content = f.read()
+                print(f"📄 输出文件内容 (前100字符): {content[:100]}{'...' if len(content) > 100 else ''}")
+                print(f"📏 文件大小: {len(content)} 字符")
+        else:
+            print("❌ 输出文件未创建")
+        
+        print(f"\n✅ 测试完成 - 有效代理: {len(valid_proxies)}/{len(all_proxies)}")
+        return len(valid_proxies)
     
-    # 确保输入文件存在
-    if not os.path.exists(input_file):
-        print(f"❌ 错误: 输入文件 {input_file} 不存在")
+    except Exception as e:
+        print(f"🔥 主函数异常: {str(e)}")
         return 0
-    
-    # 读取并提取输入代理
-    all_proxies = read_input_proxies(input_file)
-    
-    if not all_proxies:
-        print("⚠️ 未找到任何代理，跳过测试")
-        return 0
-    
-    # 测试所有代理
-    valid_proxies = []
-    for proxy in all_proxies:
-        if test_proxy(proxy):
-            valid_proxies.append(proxy)
-    
-    # 保存有效代理
-    if valid_proxies:
-        save_valid_proxies(valid_proxies, output_file)
-    else:
-        # 如果没有有效代理，清空输出文件
-        with open(output_file, 'w') as f:
-            f.write('')
-        print("📁 清空输出文件（无有效代理）")
-    
-    print(f"\n✅ 测试完成 - 有效代理: {len(valid_proxies)}/{len(all_proxies)}")
-    return len(valid_proxies)
 
 if __name__ == "__main__":
     main()
