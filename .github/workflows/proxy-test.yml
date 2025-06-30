@@ -3,7 +3,7 @@ name: Proxy Tester
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 */5 * *'  # 每五天运行一次（UTC时间0点，具体时间根据时区调整）
 
 jobs:
   test-and-update:
