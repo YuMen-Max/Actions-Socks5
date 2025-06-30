@@ -3,7 +3,7 @@ name: Proxy Tester
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 0 */5 * *'  # 每五天运行一次（UTC时间0点，具体时间根据时区调整）
+    - cron: '0 0 * * *'  # 每天UTC时间0点运行（北京时间8点）
 
 jobs:
   test-and-update:
@@ -33,7 +33,20 @@ jobs:
         valid_count=$(grep -c . telecom.txt 2>/dev/null || echo 0)
         echo "valid_count=$valid_count" >> $GITHUB_OUTPUT
         
+    - name: Check for changes
+      id: check-changes
+      run: |
+        # 检查文件是否有变化
+        if git diff --quiet telecom.txt; then
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "🟢 没有变化，跳过提交"
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "🟡 检测到变化，将提交更新"
+        fi
+        
     - name: Commit and push changes
+      if: ${{ steps.check-changes.outputs.has_changes == 'true' }}
       run: |
         git config --local user.email "github-actions@users.noreply.github.com"
         git config --local user.name "GitHub Actions"
