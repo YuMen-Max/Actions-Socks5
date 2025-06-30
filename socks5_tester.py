@@ -26,7 +26,8 @@ def test_proxy(proxy):
         }
         response = requests.get(test_url, proxies=proxies, timeout=timeout)
         return response.status_code == 204  # 返回 204 表示成功
-    except RequestException:
+    except RequestException as e:
+        print(f"代理 {proxy} 测试失败: {e}")
         return False
 
 def main():
@@ -41,6 +42,10 @@ def main():
     # 读取代理 IP 列表
     with open(input_file, "r") as file:
         proxies = [line.strip() for line in file if line.strip()]
+
+    if not proxies:
+        print(f"输入文件 {input_file} 为空，请添加代理地址后重试。")
+        return
 
     # 初始化通过代理的结果列表
     valid_proxies = []
