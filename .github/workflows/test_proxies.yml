@@ -1,9 +1,7 @@
 name: Proxy Connectivity Test
 
 on:
-  workflow_dispatch: # 手动触发工作流
-  schedule:
-    - cron: "0 0 * * *" # 可选：每天定时运行，例如每天午夜
+  workflow_dispatch:
 
 jobs:
   test-proxies:
@@ -12,6 +10,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -23,10 +23,3 @@ jobs:
 
     - name: Run proxy tests
       run: python test_proxies.py
-
-    - name: Upload Results
-      if: always()
-      uses: actions/upload-artifact@v4 # 将 v3 更新为 v4
-      with:
-        name: proxy-test-results
-        path: results.txt
