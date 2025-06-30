@@ -1,33 +1,40 @@
-name: Proxy Connectivity Test
+name: Proxy Tester
 
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间00:00运行
+    - cron: '0 0 * * *'  # 每天UTC时间0点运行（北京时间8点）
 
 jobs:
-  test-proxies:
+  test-and-update:
     runs-on: ubuntu-latest
-    env:
-      PROXY_LIST: ${{ secrets.PROXY_LIST }}
-      
+    permissions:
+      contents: write  # 允许推送更改回仓库
+    
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
-      
+      with:
+        fetch-depth: 0  # 获取完整历史记录
+        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: '3.10'
         
     - name: Install dependencies
       run: pip install -r requirements.txt
-      
+        
     - name: Run proxy tests
-      run: python proxy_tester.py
-      
-    - name: Upload valid proxies
-      uses: actions/upload-artifact@v3
-      with:
-        name: valid-proxies
-        path: valid_proxies.txt
+      id: run-tests
+      run: |
+        python proxy_tester.py
+        echo "valid_count=$(grep -c . telecom.txt || echo 0)" >> $GITHUB_OUTPUT
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "github-actions@users.noreply.github.com"
+        git config --local user.name "GitHub Actions"
+        git add telecom.txt
+        git commit -m "更新有效代理列表 (${{ steps.run-tests.outputs.valid_count }}个)"
+        git push
