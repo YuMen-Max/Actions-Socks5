@@ -77,6 +77,10 @@ def test_proxies(proxies):
 
 # 主函数
 if __name__ == "__main__":
+    # 清空 results.txt 文件内容
+    with open(RESULTS_FILE, "w") as file:
+        file.write("")  # 清空文件内容
+
     # 加载代理列表
     proxies = load_proxies(PROXY_FILE)
 
@@ -84,7 +88,7 @@ if __name__ == "__main__":
     print(f"Testing {len(proxies)} proxies...")
     working_proxies = test_proxies(proxies)
 
-    # 清空并保存连通性正常的代理到 results.txt
+    # 保存连通性正常的代理到 results.txt
     with open(RESULTS_FILE, "w") as file:
         file.write("\n".join(working_proxies))
 
