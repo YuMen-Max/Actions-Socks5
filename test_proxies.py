@@ -42,7 +42,7 @@ def test_proxy(proxy):
         
         # 如果返回 204 状态码，表示代理正常
         if response.status_code == 204:
-            return f"SUCCESS: {proxy}"
+            return proxy  # 返回原始代理字符串
         else:
             return None  # 返回 None 表示失败
     except Exception:
@@ -71,7 +71,7 @@ def test_proxies(proxies):
     with ThreadPoolExecutor(max_workers=50) as executor:
         for result in executor.map(test_proxy, proxies):
             if result:  # 如果测试通过，result 不为 None
-                working_proxies.append(result.split("SUCCESS: ")[1])
+                working_proxies.append(result)
 
     return working_proxies
 
