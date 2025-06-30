@@ -1,3 +1,4 @@
+import os
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
@@ -76,10 +77,21 @@ def test_proxies(proxies):
         for result in executor.map(test_proxy, proxies):
             results.append(result)
             if result.startswith("SUCCESS"):
-                # 确保字符串闭合（修复错误）
                 working_proxies.append(result.split("SUCCESS: ")[1])
 
     return results, working_proxies
+
+# 提交文件到仓库
+def commit_files_to_repo(files, message="Add proxy test results"):
+    """
+    使用 Git 方式将文件提交到仓库
+    """
+    os.system("git config --global user.email 'github-actions[bot]@users.noreply.github.com'")
+    os.system("git config --global user.name 'github-actions[bot]'")
+    for file in files:
+        os.system(f"git add {file}")
+    os.system(f"git commit -m '{message}' || echo 'No changes to commit'")
+    os.system("git push origin main")
 
 # 主函数
 if __name__ == "__main__":
@@ -100,3 +112,6 @@ if __name__ == "__main__":
 
     print(f"Testing completed. Results saved to {RESULTS_FILE}.")
     print(f"Working proxies saved to {WORKING_PROXIES_FILE}.")
+
+    # 提交生成的文件到仓库
+    commit_files_to_repo([RESULTS_FILE, WORKING_PROXIES_FILE])
