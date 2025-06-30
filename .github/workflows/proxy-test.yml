@@ -1,21 +1,25 @@
 name: Proxy Tester
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间0点运行（北京时间8点）
+    - cron: '0 0 * * *'
 
 jobs:
   test-and-update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 允许推送更改回仓库
+      contents: write
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 获取完整历史记录
+        fetch-depth: 0
+        ref: 'main'  # 明确指定分支
+        
+    - name: Clean workspace
+      run: git clean -fdx  # 清除可能存在的缓存
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -29,14 +33,19 @@ jobs:
       id: run-tests
       run: |
         python proxy_tester.py
-        # 统计有效代理数量
         valid_count=$(grep -c . telecom.txt 2>/dev/null || echo 0)
         echo "valid_count=$valid_count" >> $GITHUB_OUTPUT
+        
+    - name: Verify file location
+      run: |
+        echo "当前工作目录: $(pwd)"
+        ls -la
+        echo "telecom.txt 内容:"
+        cat telecom.txt
         
     - name: Check for changes
       id: check-changes
       run: |
-        # 检查文件是否有变化
         if git diff --quiet telecom.txt; then
           echo "has_changes=false" >> $GITHUB_OUTPUT
           echo "🟢 没有变化，跳过提交"
