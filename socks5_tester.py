@@ -8,13 +8,9 @@ import subprocess
 # 配置参数
 INPUT_FILE = "socks.txt"
 OUTPUT_FILE = "telecom.txt"
-TEST_URLS = [
-    "http://www.gstatic.com/generate_204",
-    "http://captive.apple.com",
-    "http://www.msftconnecttest.com/connecttest.txt"
-]
-TIMEOUT = 8  # 增加超时时间以适应 GitHub Actions 环境
-MAX_TEST_COUNT = 2000
+TEST_URL = "http://www.gstatic.com/generate_204"  # 仅使用这个测试链接
+TIMEOUT = 8  # 超时时间
+MAX_TEST_COUNT = 2000  # 最大测试数量
 
 def debug_print(message):
     """带时间戳的调试输出"""
@@ -37,7 +33,7 @@ def setup_environment():
             sys.exit(1)
 
 def test_proxy(proxy):
-    """测试代理连通性"""
+    """测试代理连通性 - 仅使用 gstatic.com/generate_204"""
     try:
         proxies = {
             "http": f"socks5://{proxy}",
@@ -50,32 +46,26 @@ def test_proxy(proxy):
         
         debug_print(f"测试代理: {proxy}")
         
-        for url in TEST_URLS:
-            try:
-                start_time = time.time()
-                response = requests.get(
-                    url, 
-                    proxies=proxies, 
-                    timeout=TIMEOUT,
-                    headers=headers,
-                    verify=False  # 避免证书验证问题
-                )
+        try:
+            start_time = time.time()
+            response = requests.get(
+                TEST_URL, 
+                proxies=proxies, 
+                timeout=TIMEOUT,
+                headers=headers,
+                verify=False  # 避免证书验证问题
+            )
+            
+            latency = (time.time() - start_time) * 1000
+            debug_print(f"响应时间: {latency:.2f}ms, 状态码: {response.status_code}")
+            
+            # 检查状态码是否为 204
+            if response.status_code == 204:
+                return True
                 
-                latency = (time.time() - start_time) * 1000
-                debug_print(f"  √ {url} 响应时间: {latency:.2f}ms, 状态码: {response.status_code}")
-                
-                # 检查不同服务的成功响应
-                if "gstatic.com" in url and response.status_code == 204:
-                    return True
-                if "apple.com" in url and "Success" in response.text:
-                    return True
-                if "msftconnecttest.com" in url and "Microsoft Connect Test" in response.text:
-                    return True
-                    
-            except Exception as e:
-                debug_print(f"  × {url} 失败: {type(e).__name__}")
-                continue
-                
+        except Exception as e:
+            debug_print(f"请求失败: {type(e).__name__}")
+        
         return False
         
     except Exception as e:
@@ -86,6 +76,7 @@ def main():
     """主函数"""
     print("=" * 60)
     print("GitHub Actions 代理测试脚本")
+    print(f"测试链接: {TEST_URL}")
     print("=" * 60)
     print(f"操作系统: {platform.system()} {platform.release()}")
     print(f"Python 版本: {sys.version}")
