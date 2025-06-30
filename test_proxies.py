@@ -39,10 +39,10 @@ def test_proxy(proxy):
 
         # 发送请求
         response = requests.get(TEST_URL, proxies=proxies, timeout=5)
-        
+
         # 如果返回 204 状态码，表示代理正常
         if response.status_code == 204:
-            return proxy  # 直接返回原始代理字符串
+            return proxy  # 返回原始代理字符串
         else:
             return None  # 返回 None 表示失败
     except Exception:
@@ -75,6 +75,23 @@ def test_proxies(proxies):
 
     return working_proxies
 
+# 检查文件内容
+def validate_results(file_path):
+    """
+    检查文件内容，确保只包含格式正确的代理
+    """
+    valid_proxies = []
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+        for line in lines:
+            line = line.strip()
+            try:
+                parse_proxy(line)  # 验证代理格式
+                valid_proxies.append(line)
+            except ValueError:
+                print(f"Invalid entry found and skipped: {line}")
+    return valid_proxies
+
 # 主函数
 if __name__ == "__main__":
     # 清空 results.txt 文件内容
@@ -92,4 +109,12 @@ if __name__ == "__main__":
     with open(RESULTS_FILE, "w") as file:
         file.write("\n".join(working_proxies))
 
-    print(f"Testing completed. Working proxies saved to {RESULTS_FILE}.")
+    # 再次检查文件内容
+    print("Validating saved results...")
+    valid_proxies = validate_results(RESULTS_FILE)
+
+    # 如果有无效的代理，重新保存文件
+    with open(RESULTS_FILE, "w") as file:
+        file.write("\n".join(valid_proxies))
+
+    print(f"Validation completed. Final results saved to {RESULTS_FILE}.")
