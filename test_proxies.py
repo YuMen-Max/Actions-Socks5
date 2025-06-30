@@ -1,4 +1,3 @@
-import os
 import requests
 from concurrent.futures import ThreadPoolExecutor
 
@@ -10,9 +9,6 @@ PROXY_FILE = "proxies.txt"
 
 # 输出结果文件路径
 RESULTS_FILE = "results.txt"
-
-# 仅保存连通性正常的代理的文件路径
-WORKING_PROXIES_FILE = "working_proxies.txt"
 
 # 最大测试的代理数量
 MAX_PROXIES = 2000
@@ -48,9 +44,9 @@ def test_proxy(proxy):
         if response.status_code == 204:
             return f"SUCCESS: {proxy}"
         else:
-            return f"FAILED: {proxy} - Status Code: {response.status_code}"
-    except Exception as e:
-        return f"FAILED: {proxy} - Error: {e}"
+            return None  # 返回 None 表示失败
+    except Exception:
+        return None  # 返回 None 表示失败
 
 # 解析代理字符串 (user:password@127.0.0.1:1080)
 def parse_proxy(proxy):
@@ -68,30 +64,16 @@ def parse_proxy(proxy):
 # 批量测试代理
 def test_proxies(proxies):
     """
-    批量测试代理
+    批量测试代理，返回连通性测试通过的代理列表
     """
-    results = []
     working_proxies = []
 
     with ThreadPoolExecutor(max_workers=50) as executor:
         for result in executor.map(test_proxy, proxies):
-            results.append(result)
-            if result.startswith("SUCCESS"):
+            if result:  # 如果测试通过，result 不为 None
                 working_proxies.append(result.split("SUCCESS: ")[1])
 
-    return results, working_proxies
-
-# 提交文件到仓库
-def commit_files_to_repo(files, message="Add proxy test results"):
-    """
-    使用 Git 方式将文件提交到仓库
-    """
-    os.system("git config --global user.email 'github-actions[bot]@users.noreply.github.com'")
-    os.system("git config --global user.name 'github-actions[bot]'")
-    for file in files:
-        os.system(f"git add {file}")
-    os.system(f"git commit -m '{message}' || echo 'No changes to commit'")
-    os.system("git push origin main")
+    return working_proxies
 
 # 主函数
 if __name__ == "__main__":
@@ -100,18 +82,10 @@ if __name__ == "__main__":
 
     # 测试代理
     print(f"Testing {len(proxies)} proxies...")
-    results, working_proxies = test_proxies(proxies)
+    working_proxies = test_proxies(proxies)
 
-    # 保存所有结果到文件
+    # 清空并保存连通性正常的代理到 results.txt
     with open(RESULTS_FILE, "w") as file:
-        file.write("\n".join(results))
-
-    # 保存连通性正常的代理到文件
-    with open(WORKING_PROXIES_FILE, "w") as file:
         file.write("\n".join(working_proxies))
 
-    print(f"Testing completed. Results saved to {RESULTS_FILE}.")
-    print(f"Working proxies saved to {WORKING_PROXIES_FILE}.")
-
-    # 提交生成的文件到仓库
-    commit_files_to_repo([RESULTS_FILE, WORKING_PROXIES_FILE])
+    print(f"Testing completed. Working proxies saved to {RESULTS_FILE}.")
