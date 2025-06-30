@@ -1,9 +1,9 @@
 name: Proxy Tester
 
 on:
-  workflow_dispatch:  # 允许手动运行
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # 每天 UTC 时间 0 点运行
+    - cron: '0 0 * * *'
 
 jobs:
   test-proxies:
@@ -11,10 +11,18 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # 更新到最新版本
+      uses: actions/checkout@v4
+      
+    - name: Verify files exist
+      run: |
+        echo "当前目录内容:"
+        ls -la
+        echo "检查必要文件:"
+        [ -f socks5_tester.py ] && echo "✅ socks5_tester.py 存在" || echo "❌ socks5_tester.py 不存在"
+        [ -f socks.txt ] && echo "✅ socks.txt 存在" || echo "❌ socks.txt 不存在"
       
     - name: Set up Python
-      uses: actions/setup-python@v5  # 更新到最新版本
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
         
@@ -22,10 +30,10 @@ jobs:
       run: pip install requests
       
     - name: Run proxy tester
-      run: python proxy_tester.py
+      run: python socks5_tester.py  # 使用正确的文件名
       
     - name: Upload results
-      uses: actions/upload-artifact@v4  # 使用 v4 替代弃用的 v3
+      uses: actions/upload-artifact@v4
       with:
         name: proxy-results
         path: telecom.txt
