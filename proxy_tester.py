@@ -9,7 +9,7 @@ def test_proxy(proxy):
         'http': f'socks5://{proxy}',
         'https': f'socks5://{proxy}'
     }
-    
+    
     try:
         start = time.time()
         response = requests.get(
@@ -18,7 +18,7 @@ def test_proxy(proxy):
             timeout=2
         )
         latency = int((time.time() - start) * 1000)
-        
+        
         if response.status_code == 204:
             print(f"✅ 有效代理: {proxy} | 延迟: {latency}ms")
             return True
@@ -26,7 +26,7 @@ def test_proxy(proxy):
         pass
     except Exception as e:
         print(f"⚠️ 测试异常: {proxy} | 错误: {str(e)}")
-    
+    
     print(f"❌ 无效代理: {proxy}")
     return False
 
@@ -35,7 +35,7 @@ def read_input_proxies(input_file):
     if not os.path.exists(input_file):
         print(f"⚠️ 输入文件不存在: {input_file}")
         return []
-    
+    
     try:
         with open(input_file, 'r') as f:
             proxies = [line.strip() for line in f.readlines() if line.strip()]
@@ -60,25 +60,25 @@ def main():
     # 配置输入输出文件
     input_file = "china.txt"
     output_file = "telecom.txt"
-    
+    
     # 确保输入文件存在
     if not os.path.exists(input_file):
         print(f"❌ 错误: 输入文件 {input_file} 不存在")
         return 0
-    
+    
     # 读取输入代理
     all_proxies = read_input_proxies(input_file)
-    
+    
     if not all_proxies:
         print("⚠️ 未找到任何代理，跳过测试")
         return 0
-    
+    
     # 测试所有代理
     valid_proxies = []
     for proxy in all_proxies:
         if test_proxy(proxy):
             valid_proxies.append(proxy)
-    
+    
     # 保存有效代理
     if valid_proxies:
         save_valid_proxies(valid_proxies, output_file)
@@ -87,7 +87,7 @@ def main():
         with open(output_file, 'w') as f:
             f.write('')
         print("📁 清空输出文件（无有效代理）")
-    
+    
     print(f"\n✅ 测试完成 - 有效代理: {len(valid_proxies)}/{len(all_proxies)}")
     return len(valid_proxies)
 
