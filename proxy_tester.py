@@ -96,8 +96,8 @@ def main():
         script_dir = os.path.dirname(os.path.abspath(__file__))
         print(f"📂 脚本目录: {script_dir}")
         
-        # 配置输入输出文件（使用绝对路径）
-        input_file = os.path.join(script_dir, "china.txt")
+        # 配置输入输出文件（使用绝对路径，全部小写）
+        input_file = os.path.join(script_dir, "china.txt")  # 确保小写
         output_file = os.path.join(script_dir, "telecom.txt")
         
         print(f"📝 输入文件路径: {input_file}")
@@ -126,23 +126,27 @@ def main():
             if (i + 1) % 100 == 0:
                 print(f"⏳ 测试进度: {i+1}/{len(all_proxies)} | 有效代理: {len(valid_proxies)}")
         
-        # 保存有效代理
+        # 保存有效代理到telecom.txt
         if valid_proxies:
             save_valid_proxies(valid_proxies, output_file)
+            # 同时更新china.txt文件（使用小写）
+            save_valid_proxies(valid_proxies, input_file)
+            print(f"🔄 已更新 {input_file} 文件")
         else:
-            # 如果没有有效代理，清空输出文件
-            with open(output_file, 'w') as f:
-                f.write('')
-            print("📁 清空输出文件（无有效代理）")
+            # 如果没有有效代理，清空两个文件
+            for file_path in [output_file, input_file]:
+                with open(file_path, 'w') as f:
+                    f.write('')
+                print(f"📁 清空文件: {file_path}")
         
         # 验证文件是否保存成功
-        if os.path.exists(output_file):
-            with open(output_file, 'r') as f:
-                content = f.read()
-                print(f"📄 输出文件内容 (前100字符): {content[:100]}{'...' if len(content) > 100 else ''}")
-                print(f"📏 文件大小: {len(content)} 字符")
-        else:
-            print("❌ 输出文件未创建")
+        for file_path in [output_file, input_file]:
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as f:
+                    content = f.read()
+                    print(f"📄 {os.path.basename(file_path)} 内容长度: {len(content)} 字符")
+            else:
+                print(f"❌ 文件未创建: {file_path}")
         
         print(f"\n✅ 测试完成 - 有效代理: {len(valid_proxies)}/{len(all_proxies)}")
         return len(valid_proxies)
