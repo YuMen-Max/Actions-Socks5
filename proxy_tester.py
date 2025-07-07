@@ -49,6 +49,7 @@ def test_proxy(proxy):
     
     print(f"❌ 无效代理: {proxy}")
     return False
+
 def read_input_proxies(input_file):
     """从输入文件读取并提取代理"""
     if not os.path.exists(input_file):
@@ -76,14 +77,17 @@ def read_input_proxies(input_file):
         return []
 
 def save_valid_proxies(valid_proxies, output_file):
-    """保存有效代理到输出文件"""
+    """保存有效代理到输出文件（格式为 socks5://账号:密码@ip:端口）"""
     try:
         # 确保输出目录存在
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         
+        # 修改这里：添加 socks5:// 前缀
+        formatted_proxies = [f"socks5://{proxy}" for proxy in valid_proxies]
+        
         with open(output_file, 'w') as f:
-            f.write('\n'.join(valid_proxies))
-        print(f"📁 保存 {len(valid_proxies)} 个有效代理到 {output_file}")
+            f.write('\n'.join(formatted_proxies))
+        print(f"📁 保存 {len(valid_proxies)} 个有效代理到 {output_file} (格式: socks5://账号:密码@ip:端口)")
         return True
     except Exception as e:
         print(f"⚠️ 保存文件 {output_file} 失败: {str(e)}")
@@ -125,7 +129,7 @@ def main():
             if (i + 1) % 100 == 0:
                 print(f"⏳ 测试进度: {i+1}/{len(all_proxies)} | 有效代理: {len(valid_proxies)}")
         
-        # 保存有效代理
+        # 保存有效代理（格式已修改）
         if valid_proxies:
             save_valid_proxies(valid_proxies, output_file)
         else:
