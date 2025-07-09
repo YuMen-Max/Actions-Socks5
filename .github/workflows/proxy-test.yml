@@ -1,7 +1,9 @@
 name: Proxy Tester
 
 on:
-  workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * *'  # 每天 UTC 16:00 = 中国时间 00:00
+  workflow_dispatch:       # 允许手动触发
 
 jobs:
   test-and-update:
