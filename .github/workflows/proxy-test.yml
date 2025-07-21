@@ -2,7 +2,7 @@ name: Proxy Tester
 
 on:
   schedule:
-  - cron: '0 16 */3 * *'  # 每3天的下午4点执行（基于日历日）
+    - cron: '0 7 * */3 *'  # 每3天的上午7点 JST 执行，调整为 JST 时间 (UTC+9)
   workflow_dispatch:       # 允许手动触发
 
 jobs:
@@ -10,49 +10,45 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         ref: 'main'
-        
-    - name: Fix file permissions
-      run: sudo chown -R $(whoami) $GITHUB_WORKSPACE
-        
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        
+
     - name: Install dependencies
-      run: pip install -r requirements.txt
-        
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install tqdm  # 确保 tqdm 安装
+
     - name: Run proxy tests
       id: run-tests
+      env:
+        PYTHONUNBUFFERED: 1  # 确保日志实时输出
       run: |
         echo "=== 当前目录内容 ==="
         ls -la
-        
-        echo "=== china.txt 内容 ==="
-        cat china.txt
-        
+        echo "=== china.txt 内容 (前10行) ==="
+        head -n 10 china.txt || echo "china.txt 为空或不存在"
         python proxy_tester.py
-        
-        echo "=== telecom.txt 内容 ==="
-        cat telecom.txt
-        
+        echo "=== telecom.txt 内容 (前10行) ==="
+        head -n 10 telecom.txt || echo "telecom.txt 为空或不存在"
         valid_count=$(grep -c . telecom.txt 2>/dev/null || echo 0)
         echo "valid_count=$valid_count" >> $GITHUB_OUTPUT
-        
+
     - name: Check for changes
       id: check-changes
       run: |
         echo "=== 文件变更检查 ==="
-        git status
-        git diff
-        
+        git status --porcelain
         if git diff --quiet telecom.txt; then
           echo "has_changes=false" >> $GITHUB_OUTPUT
           echo "🟢 没有变化，跳过提交"
@@ -60,12 +56,12 @@ jobs:
           echo "has_changes=true" >> $GITHUB_OUTPUT
           echo "🟡 检测到变化，将提交更新"
         fi
-        
+
     - name: Commit and push changes
       if: ${{ steps.check-changes.outputs.has_changes == 'true' }}
       run: |
         git config --local user.email "github-actions@users.noreply.github.com"
         git config --local user.name "GitHub Actions"
         git add telecom.txt
-        git commit -m "更新有效代理列表 (${{ steps.run-tests.outputs.valid_count }}个)"
+        git commit -m "更新有效代理列表 (${{ steps.run-tests.outputs.valid_count }}个) [skip ci]"  # [skip ci] 避免循环触发
         git push
